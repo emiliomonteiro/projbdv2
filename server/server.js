@@ -1,96 +1,137 @@
-// server/config/database.js
-// NO dotenv.config() here! server.js handles loading server/.env
+// server/server.js
+import './config/loadEnv.js'; // <<<< MUST BE THE VERY FIRST IMPORT AND LINE OF CODE
 
-import { Pool } from 'pg';
-import { MongoClient } from 'mongodb';
+// --- Debugging right after loadEnv import ---
+console.log(
+  '[Server.js] AFTER loadEnv import - process.env.MONGO_URI:',
+  process.env.MONGO_URI
+);
+console.log(
+  '[Server.js] AFTER loadEnv import - process.env.PORT:',
+  process.env.PORT
+);
+// --- End Debugging ---
 
-// Default configuration (useful for fallbacks or if .env is truly missing)
-const defaultConfig = {
-  postgres: {
-    user: 'postgres_default_user', // Consider different defaults
-    host: 'localhost',
-    database: 'video_rental_default_pg_db',
-    password: 'default_pg_password',
-    port: 5432,
-  },
-  mongodb: {
-    uri: 'mongodb://localhost:27017/video_rental_default_mongo_db', // Default URI with DB
-    // dbName: 'video_rental_default_mongo_db' // Can be extracted from URI or set separately
+import express from 'express';
+import cors from 'cors';
+// DO NOT import dotenv again here or call dotenv.config()
+import { fileURLToPath } from 'url';
+import path, { dirname, join } from 'path';
+
+// Now import your other modules
+console.log('[Server.js] About to import database.js...');
+import {
+  testPostgresConnection,
+  connectMongoDB,
+  getMongoDb, // Assuming you have this
+  pgPool,     // Assuming you export and need this
+} from './config/database.js'; // database.js should NOT call dotenv.config()
+console.log('[Server.js] Imported database.js.');
+
+import dataRoutes from './routes/dataRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3001; // Should pick up from .env now
+
+// ... (rest of your server.js: middleware, routes, initializeDatabases, startServer)
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// API Routes
+app.use('/api/data', dataRoutes);
+app.use('/api/analytics', analyticsRoutes);
+
+// Initialize database connections
+const initializeDatabases = async () => {
+  try {
+    console.log('[Server.js] Initializing databases...');
+    await testPostgresConnection();
+    await connectMongoDB(); // This will now use the MONGO_URI from .env
+    console.log('All database connections established successfully');
+  } catch (error) {
+    console.error('Failed to initialize database connections:', error);
+    process.exit(1);
   }
 };
 
-// PostgreSQL connection
-// Variables like process.env.POSTGRES_USER should be populated by server.js
-const pgPool = new Pool({
-  user: process.env.POSTGRES_USER || defaultConfig.postgres.user,
-  host: process.env.POSTGRES_HOST || defaultConfig.postgres.host,
-  database: process.env.POSTGRES_DB || defaultConfig.postgres.database,
-  password: process.env.POSTGRES_PASSWORD || defaultConfig.postgres.password,
-  port: parseInt(process.env.POSTGRES_PORT, 10) || defaultConfig.postgres.port,
+// Mock data endpoint for development
+app.get('/api/dashboard', (req, res) => {
+  res.json({
+    kpis: {
+      totalRevenue: '$245,670',
+      revenueChange: 12.5,
+      activeRentals: '1,234',
+      rentalsChange: 7.8,
+      newCustomers: '256',
+      customersChange: 15.3,
+      avgRentalDuration: '4.2 days',
+      durationChange: -2.1,
+    },
+    salesTrend: [
+      { month: 'Jan', revenue: 18500 },
+      { month: 'Feb', revenue: 17200 },
+      { month: 'Mar', revenue: 19800 },
+      { month: 'Apr', revenue: 21500 },
+      { month: 'May', revenue: 20300 },
+      { month: 'Jun', revenue: 22800 },
+      { month: 'Jul', revenue: 24100 },
+      { month: 'Aug', revenue: 23700 },
+      { month: 'Sep', revenue: 25900 },
+      { month: 'Oct', revenue: 27300 },
+      { month: 'Nov', revenue: 26800 },
+      { month: 'Dec', revenue: 28100 },
+    ],
+    topProducts: [
+      { name: 'Action Movie Collection', rentals: 324, revenue: 4860 },
+      { name: 'Sci-Fi Classics', rentals: 286, revenue: 4290 },
+      { name: 'New Releases Bundle', rentals: 253, revenue: 5060 },
+      { name: 'Family Movies Pack', rentals: 215, revenue: 3225 },
+      { name: 'Documentary Series', rentals: 198, revenue: 2970 },
+    ],
+    customerSegments: [
+      { name: 'Frequent Renters', percentage: 35 },
+      { name: 'Occasional Viewers', percentage: 42 },
+      { name: 'New Customers', percentage: 15 },
+      { name: 'Premium Subscribers', percentage: 8 },
+    ],
+    revenueByLocation: [
+      { city: 'New York', revenue: 68540 },
+      { city: 'Los Angeles', revenue: 52370 },
+      { city: 'Chicago', revenue: 37920 },
+      { city: 'Houston', revenue: 31580 },
+      { city: 'Phoenix', revenue: 28140 },
+      { city: 'Other', revenue: 27120 },
+    ],
+  });
 });
 
-// MongoDB connection
-// Ensure your server/.env uses MONGO_URI
-const mongoFullUri = process.env.MONGO_URI || defaultConfig.mongodb.uri;
-
-console.log('[database.js] Using MongoDB URI:', mongoFullUri); // For debugging
-
-if (!mongoFullUri) {
-  // This should ideally not be hit if server.js loads .env or defaults are present
-  throw new Error(
-    'MongoDB URI is not defined. Check .env configuration and defaults.'
-  );
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '..', 'dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
+  });
 }
 
-const mongoClient = new MongoClient(mongoFullUri);
-let mongoDbInstance; // To store the connected db instance
-
-export const connectMongoDB = async () => {
-  if (mongoDbInstance) {
-    console.log('MongoDB is already connected.');
-    return mongoDbInstance;
-  }
-  try {
-    await mongoClient.connect();
-    // If MONGO_URI includes the database name, mongoClient.db() will use it.
-    // Otherwise, you'd need a separate MONGODB_DB_NAME env var.
-    mongoDbInstance = mongoClient.db(); // Gets the DB from the connection string
-    console.log(
-      'Connected to MongoDB. Using database:',
-      mongoDbInstance.databaseName
-    );
-    return mongoDbInstance;
-  } catch (error) {
-    console.error('MongoDB connection error in connectMongoDB:', error);
-    console.error('Attempted to connect with URI:', mongoFullUri); // Log the URI on error
-    throw error;
-  }
+// Start server
+const startServer = async () => {
+  console.log('[Server.js] Calling initializeDatabases...');
+  await initializeDatabases();
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
 };
 
-export const getMongoDb = () => {
-  if (!mongoDbInstance) {
-    throw new Error(
-      'MongoDB has not been connected yet. Ensure connectMongoDB() was called and awaited successfully at server startup.'
-    );
-  }
-  return mongoDbInstance;
-};
+console.log('[Server.js] Calling startServer()...');
+startServer().catch((err) => {
+  console.error('[Server.js] Error during server startup:', err);
+  process.exit(1);
+});
 
-export const testPostgresConnection = async () => {
-  let client;
-  try {
-    client = await pgPool.connect();
-    console.log('Connected to PostgreSQL');
-    return true;
-  } catch (error) {
-    console.error('PostgreSQL connection error:', error);
-    throw error;
-  } finally {
-    if (client) {
-      client.release();
-    }
-  }
-};
-
-// Export pgPool if it's used directly elsewhere, otherwise it's just used internally here.
-export { pgPool /*, mongoClient */ }; // mongoClient usually isn't exported directly if connectMongoDB handles it
+export default app; // Though for a server entry point, this export isn't typically used.

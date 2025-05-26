@@ -1,17 +1,21 @@
 // server/config/database.js
-// NO dotenv.config() here! loadEnv.js (imported by server.js) handles it.
+// NO dotenv.config() here!
 
 import { Pool } from 'pg';
 import { MongoClient } from 'mongodb';
 
 console.log(
-  '[database.js] Top of module. MONGO_URI:',
+  '[database.js] Top of module. process.env.MONGO_URI:',
   process.env.MONGO_URI
-); // Debug
+);
+console.log(
+  '[database.js] Top of module. process.env.POSTGRES_USER:',
+  process.env.POSTGRES_USER
+);
 
 // PostgreSQL connection
 const pgPool = new Pool({
-  user: process.env.POSTGRES_USER, // Should now be loaded
+  user: process.env.POSTGRES_USER,
   host: process.env.POSTGRES_HOST,
   database: process.env.POSTGRES_DB,
   password: process.env.POSTGRES_PASSWORD,
@@ -19,21 +23,22 @@ const pgPool = new Pool({
 });
 
 // MongoDB connection
-const mongoFullUri = process.env.MONGO_URI; // Should now be loaded
+const mongoFullUri = process.env.MONGO_URI; // This should now be populated by loadEnv.js via server.js
 
 if (!mongoFullUri) {
-  // This error means .env loading failed upstream despite our efforts
+  // If this error is thrown, it means loadEnv.js didn't work as expected
+  // or MONGO_URI is missing from server/.env
   throw new Error(
-    'CRITICAL: MongoDB URI (MONGO_URI) is not defined in environment variables. Check .env loading in loadEnv.js and server.js.'
+    'CRITICAL FAILURE: MONGO_URI is undefined in database.js. Check server/.env and loadEnv.js/server.js import order.'
   );
 }
-console.log('[database.js] Will use MongoDB URI:', mongoFullUri);
+console.log('[database.js] Will attempt to use MongoDB URI:', mongoFullUri);
 
 const mongoClient = new MongoClient(mongoFullUri);
 let mongoDbInstance;
 
-// ... (rest of your connectMongoDB, getMongoDb, testPostgresConnection, exports)
 export const connectMongoDB = async () => {
+  // ... (rest of the function as before, ensuring it uses mongoFullUri)
   if (mongoDbInstance) {
     console.log('MongoDB is already connected.');
     return mongoDbInstance;
@@ -56,13 +61,14 @@ export const connectMongoDB = async () => {
 export const getMongoDb = () => {
   if (!mongoDbInstance) {
     throw new Error(
-      'MongoDB has not been connected yet. Ensure connectMongoDB() was called and awaited successfully at server startup.'
+      'MongoDB has not been connected yet. Ensure connectMongoDB() was called.'
     );
   }
   return mongoDbInstance;
 };
 
 export const testPostgresConnection = async () => {
+  // ... (as before)
   let client;
   try {
     client = await pgPool.connect();
