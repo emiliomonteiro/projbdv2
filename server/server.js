@@ -61,55 +61,55 @@ const initializeDatabases = async () => {
 };
 
 // Mock data endpoint for development
-app.get('/api/dashboard', (req, res) => {
-  res.json({
-    kpis: {
-      totalRevenue: '$245,670',
-      revenueChange: 12.5,
-      activeRentals: '1,234',
-      rentalsChange: 7.8,
-      newCustomers: '256',
-      customersChange: 15.3,
-      avgRentalDuration: '4.2 days',
-      durationChange: -2.1,
-    },
-    salesTrend: [
-      { month: 'Jan', revenue: 18500 },
-      { month: 'Feb', revenue: 17200 },
-      { month: 'Mar', revenue: 19800 },
-      { month: 'Apr', revenue: 21500 },
-      { month: 'May', revenue: 20300 },
-      { month: 'Jun', revenue: 22800 },
-      { month: 'Jul', revenue: 24100 },
-      { month: 'Aug', revenue: 23700 },
-      { month: 'Sep', revenue: 25900 },
-      { month: 'Oct', revenue: 27300 },
-      { month: 'Nov', revenue: 26800 },
-      { month: 'Dec', revenue: 28100 },
-    ],
-    topProducts: [
-      { name: 'Action Movie Collection', rentals: 324, revenue: 4860 },
-      { name: 'Sci-Fi Classics', rentals: 286, revenue: 4290 },
-      { name: 'New Releases Bundle', rentals: 253, revenue: 5060 },
-      { name: 'Family Movies Pack', rentals: 215, revenue: 3225 },
-      { name: 'Documentary Series', rentals: 198, revenue: 2970 },
-    ],
-    customerSegments: [
-      { name: 'Frequent Renters', percentage: 35 },
-      { name: 'Occasional Viewers', percentage: 42 },
-      { name: 'New Customers', percentage: 15 },
-      { name: 'Premium Subscribers', percentage: 8 },
-    ],
-    revenueByLocation: [
-      { city: 'New York', revenue: 68540 },
-      { city: 'Los Angeles', revenue: 52370 },
-      { city: 'Chicago', revenue: 37920 },
-      { city: 'Houston', revenue: 31580 },
-      { city: 'Phoenix', revenue: 28140 },
-      { city: 'Other', revenue: 27120 },
-    ],
-  });
-});
+// app.get('/api/dashboard', (req, res) => {
+//   res.json({
+//     kpis: {
+//       totalRevenue: '$245,670',
+//       revenueChange: 12.5,
+//       activeRentals: '1,234',
+//       rentalsChange: 7.8,
+//       newCustomers: '256',
+//       customersChange: 15.3,
+//       avgRentalDuration: '4.2 days',
+//       durationChange: -2.1,
+//     },
+//     salesTrend: [
+//       { month: 'Jan', revenue: 18500 },
+//       { month: 'Feb', revenue: 17200 },
+//       { month: 'Mar', revenue: 19800 },
+//       { month: 'Apr', revenue: 21500 },
+//       { month: 'May', revenue: 20300 },
+//       { month: 'Jun', revenue: 22800 },
+//       { month: 'Jul', revenue: 24100 },
+//       { month: 'Aug', revenue: 23700 },
+//       { month: 'Sep', revenue: 25900 },
+//       { month: 'Oct', revenue: 27300 },
+//       { month: 'Nov', revenue: 26800 },
+//       { month: 'Dec', revenue: 28100 },
+//     ],
+//     topProducts: [
+//       { name: 'Action Movie Collection', rentals: 324, revenue: 4860 },
+//       { name: 'Sci-Fi Classics', rentals: 286, revenue: 4290 },
+//       { name: 'New Releases Bundle', rentals: 253, revenue: 5060 },
+//       { name: 'Family Movies Pack', rentals: 215, revenue: 3225 },
+//       { name: 'Documentary Series', rentals: 198, revenue: 2970 },
+//     ],
+//     customerSegments: [
+//       { name: 'Frequent Renters', percentage: 35 },
+//       { name: 'Occasional Viewers', percentage: 42 },
+//       { name: 'New Customers', percentage: 15 },
+//       { name: 'Premium Subscribers', percentage: 8 },
+//     ],
+//     revenueByLocation: [
+//       { city: 'New York', revenue: 68540 },
+//       { city: 'Los Angeles', revenue: 52370 },
+//       { city: 'Chicago', revenue: 37920 },
+//       { city: 'Houston', revenue: 31580 },
+//       { city: 'Phoenix', revenue: 28140 },
+//       { city: 'Other', revenue: 27120 },
+//     ],
+//   });
+// });
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
